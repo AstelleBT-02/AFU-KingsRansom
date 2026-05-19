@@ -51,7 +51,11 @@ namespace KingsRansom
                 {
                     is_on_foot = false;
                 }
-            }   
+            }
+                else
+            {
+                is_on_foot = false;
+            }
             }
         }       
         
@@ -95,7 +99,7 @@ namespace KingsRansom
                             if (is_on_foot == true) price = price * 2;
                             return true;
                         case EquipmentID.Chainsaw:
-                            price = 150;
+                            price = 200;
                             if (is_on_foot == true) price = price * 2;
                             return true;
                         case EquipmentID.Laser_Melee:
@@ -104,6 +108,10 @@ namespace KingsRansom
                             return true;
                         case EquipmentID.Katana:
                             price = 500;
+                            if (is_on_foot == true) price = price * 2;
+                            return true;  
+                        case EquipmentID.TrafficSign:
+                            price = 50;
                             if (is_on_foot == true) price = price * 2;
                             return true;    
 
@@ -163,9 +171,9 @@ namespace KingsRansom
                             if (is_on_foot == true) price = price * 2;
                             return true;
                         case EquipmentID.Caltrops:
-                            price = 225;
-                            if (is_on_foot == true) price = price * 2;
-                            return true;
+                            //price = 225;
+                            //  if (is_on_foot == true) price = price * 2;
+                            return false;
                         case EquipmentID.Shuriken:
                             price = 225;
                             if (is_on_foot == true) price = price * 2;
