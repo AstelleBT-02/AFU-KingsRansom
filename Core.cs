@@ -5,7 +5,7 @@ using Il2CppQuantum_Game;
 using Il2CppQuantum;
 using Il2CppQuantum.Core;
 
-[assembly: MelonInfo(typeof(KingsRansom.Core), "KingsRansom", "1.0.0", "taldo", null)]
+[assembly: MelonInfo(typeof(KingsRansom.Core), "KingsRansom", "1.0.0", "RosePT-10", null)]
 [assembly: MelonGame("Videocult", "Airframe")]
 
 namespace KingsRansom
