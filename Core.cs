@@ -4,6 +4,13 @@ using UnityEngine;
 using Il2CppQuantum_Game;
 using Il2CppQuantum;
 using Il2CppQuantum.Core;
+using Il2CppPhoton.Deterministic;
+using Il2CppView_Humanoid;
+using Il2CppQuantum_Systems;
+using Il2CppQuantum.Prototypes;
+using System.Security;
+using Il2CppQuantum_Weapons;
+using System.Runtime.CompilerServices;
 
 [assembly: MelonInfo(typeof(KingsRansom.Core), "KingsRansom", "1.0.0", "RosePT-10", null)]
 [assembly: MelonGame("Videocult", "Airframe")]
@@ -29,33 +36,99 @@ namespace KingsRansom
                 return true;
             }
         }
+
+        /*
+        [HarmonyPatch(typeof(GunSystem), "OnAdded")]
+        private class GunSystem__OnAdded_Patch
+        {
+            unsafe public static void Postfix()
+            {
+                Log.Msg("detected");
+                //component->ammo = 100;  
+            }
+        }
+        */
         // Check if currently in an on foot arena
         static bool is_on_foot = false;
+        static Il2CppSystem.Collections.Generic.List<EntityRef> ammo_list = new Il2CppSystem.Collections.Generic.List<EntityRef>();
         [HarmonyPatch(typeof(FrameContext), "OnFrameSimulationBegin")]
-        private partial class Simulate
+        private class Simulate
         {
             public static void Postfix(FrameBase f)
             {     
                 Frame ff = f.Cast<Frame>();
 
+                // Determine if currently in an on foot arena
+                if (ff.RuntimeConfig.gameSetup.gameMode != GameMode.Sandbox)
+            {
                 ArenaType arena_type = ff.GetSingleton<RaceGameState>().currArenaType;
                 RaceGameStateMode arena_mode = ff.GetSingleton<RaceGameState>().mode;
                 //Log.Msg("current mod is: " + arena_mode);
                 if (arena_mode == RaceGameStateMode.Arena)
-            {
-                if (arena_type == ArenaType.OnFoot)
                 {
-                    is_on_foot = true;
+                    if (arena_type == ArenaType.OnFoot)
+                    {
+                        is_on_foot = true;
+                    }
+                    else
+                    {
+                        is_on_foot = false;
+                    }
                 }
-                else
+                    else
                 {
                     is_on_foot = false;
                 }
             }
-                else
-            {
-                is_on_foot = false;
-            }
+                // Ammo changes
+                /*
+                Il2CppSystem.Collections.Generic.List<EntityRef> all_Erefs = new Il2CppSystem.Collections.Generic.List<EntityRef>();
+                f.GetAllEntityRefs(all_Erefs);
+                
+                if (all_Erefs.Equals(ammo_list) && ammo_list != null)
+                {
+                    Il2CppSystem.Collections.Generic.List<EntityRef> all_Erefs_trimmed = all_Erefs;
+                    foreach (EntityRef eref in ammo_list)
+                    {
+                        all_Erefs_trimmed.Remove(eref);
+                    }
+                    foreach (EntityRef eref in all_Erefs)
+                    {
+                        if (f.Has<Gun>(eref))
+                        {
+                            Log.Msg("detected");
+                        }
+                    }
+                    
+                }
+                ammo_list.Clear();
+                foreach (EntityRef eref in all_Erefs)
+                {
+                    ammo_list.Add(eref);
+                }
+                */
+                /*
+                // Killstreak visualizer
+                Il2CppSystem.Collections.Generic.List<EntityRef> all_Erefs = new Il2CppSystem.Collections.Generic.List<EntityRef>();
+                f.GetAllEntityRefs(all_Erefs);
+                
+                foreach (EntityRef eref in all_Erefs)
+                {
+                    if (f.Has<ParticipatingPlayer>(eref))
+                    {
+                        ParticipatingPlayer parplayer = f.Get<ParticipatingPlayer>(eref);
+                        if (parplayer.streak >= 0)
+                        {
+                            GameObject collider_vis = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                            Transform collider_vis_trans = collider_vis.GetComponent<Transform>();
+                            GameObject huma = f.Get<Transform>(eref);
+                            collider_vis_trans.position = huma.GetComponent<Transform>().position;
+                            //collider_vis_trans.localScale = shape.BoxExtents.ToUnityVector3() * 2 + new UnityEngine.Vector3(0.1f,0.1f,0.1f);
+                            //collider_vis_trans.rotation = shape.Rotation.ToUnityQuaternion();
+                        }
+                    }
+                }
+                */
             }
         }       
         
@@ -155,7 +228,7 @@ namespace KingsRansom
                             if (is_on_foot == true) price = price * 2;
                             return true;
                         case EquipmentID.Molotov:
-                            price = 125;
+                            price = 150;
                             if (is_on_foot == true) price = price * 2;
                             return true;
                         case EquipmentID.CherryBomb:
