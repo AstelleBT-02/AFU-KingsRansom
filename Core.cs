@@ -28,7 +28,7 @@ namespace KingsRansom
         public override void OnInitializeMelon()
         {
             base.OnInitializeMelon();
-            Log.Msg("Balanced As It Should Be.");
+            Log.Msg("Balanced, As It Should Be.");
         }
 
         // Remove green money checkpoint rings
