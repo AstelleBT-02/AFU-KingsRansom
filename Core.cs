@@ -11,6 +11,9 @@ using Il2CppQuantum.Prototypes;
 using System.Security;
 using Il2CppQuantum_Weapons;
 using System.Runtime.CompilerServices;
+using Il2CppQuantum_Core;
+using System.Configuration;
+using System.Net.Http.Headers;
 
 [assembly: MelonInfo(typeof(KingsRansom.Core), "KingsRansom", "1.0.0", "RosePT-10", null)]
 [assembly: MelonGame("Videocult", "Airframe")]
@@ -21,6 +24,12 @@ namespace KingsRansom
     {
         internal static MelonLogger.Instance Log => Melon<Core>.Instance.LoggerInstance;
         internal static KingsRansom.Core Inst => Melon<Core>.Instance;
+
+        public override void OnInitializeMelon()
+        {
+            base.OnInitializeMelon();
+            Log.Msg("Balanced As It Should Be.");
+        }
 
         // Remove green money checkpoint rings
         [HarmonyPatch(typeof(CheckPointSystem), "SpawnCheckpoint")]
@@ -37,18 +46,26 @@ namespace KingsRansom
             }
         }
 
-        /*
-        [HarmonyPatch(typeof(GunSystem), "OnAdded")]
-        private class GunSystem__OnAdded_Patch
-        {
-            unsafe public static void Postfix()
+        public static Dictionary<EquipmentID, EntityRef>    ammo_queue = new Dictionary<EquipmentID, EntityRef>();
+        [HarmonyPatch(typeof(Frame.FrameEvents), nameof(Frame.FrameEvents.HumanoidGrabEquipment))]
+        private partial class FrameEvents__HumanoidGrabEquipment_Patch
+        {   
+            public static void Postfix(EquipmentID eqId, EntityRef equipment)
             {
-                Log.Msg("detected");
-                //component->ammo = 100;  
+                ammo_queue.Add(eqId, equipment);
+            }
+        }   
+        
+        // Prevent cherry bomb and molotov ammo from changing
+        [HarmonyPatch(typeof(RaceGameStateExtensions), nameof(RaceGameStateExtensions.OnFootSecondaryStartingAmounts))]
+        private class RaceGameStateExtensions_OnFootSecondaryStartingAmounts_Patch
+        {
+            public static bool Prefix()
+            {   
+                return false;
             }
         }
-        */
-        // Check if currently in an on foot arena
+
         static bool is_on_foot = false;
         static Il2CppSystem.Collections.Generic.List<EntityRef> ammo_list = new Il2CppSystem.Collections.Generic.List<EntityRef>();
         [HarmonyPatch(typeof(FrameContext), "OnFrameSimulationBegin")]
@@ -58,7 +75,7 @@ namespace KingsRansom
             {     
                 Frame ff = f.Cast<Frame>();
 
-                // Determine if currently in an on foot arena
+                // -- Determine if currently in an on foot arena --
                 if (ff.RuntimeConfig.gameSetup.gameMode != GameMode.Sandbox)
             {
                 ArenaType arena_type = ff.GetSingleton<RaceGameState>().currArenaType;
@@ -80,7 +97,100 @@ namespace KingsRansom
                     is_on_foot = false;
                 }
             }
-                // Ammo changes
+                
+                // -- Ammo changes --
+                // Change magazine size
+                var smg = WeaponStats.stats[(int)EquipmentID.SMG];
+                smg.gunStats.magasineSize = 200;
+                WeaponStats.stats[(int)EquipmentID.SMG] = smg;
+
+                var minigun = WeaponStats.stats[(int)EquipmentID.Minigun];
+                minigun.gunStats.magasineSize = 560;
+                WeaponStats.stats[(int)EquipmentID.Minigun] = minigun;
+
+                // Change grenade ammo
+                var cherry = WeaponStats.stats[(int)EquipmentID.CherryBomb];
+                cherry.secondaryStats.startAmount = 6;
+                WeaponStats.stats[(int)EquipmentID.CherryBomb] = cherry;
+
+                var molotov = WeaponStats.stats[(int)EquipmentID.Molotov];
+                molotov.secondaryStats.startAmount = 6;
+                WeaponStats.stats[(int)EquipmentID.Molotov] = molotov;
+
+                var brick = WeaponStats.stats[(int)EquipmentID.Brick];
+                brick.secondaryStats.startAmount = 6;
+                WeaponStats.stats[(int)EquipmentID.Brick] = brick;
+
+                var shuriken = WeaponStats.stats[(int)EquipmentID.Shuriken];
+                shuriken.secondaryStats.startAmount = 18;
+                WeaponStats.stats[(int)EquipmentID.Shuriken] = shuriken;
+                
+                var caltrops = WeaponStats.stats[(int)EquipmentID.Caltrops];
+                caltrops.secondaryStats.startAmount = 60;
+                WeaponStats.stats[(int)EquipmentID.Caltrops] = caltrops;
+                
+                
+                // -- Change ammo of weapons as they are picked up --
+                if (ammo_queue.Count > 0)
+                {
+                    foreach (KeyValuePair<Il2CppQuantum.EquipmentID, Il2CppQuantum.EntityRef> pair in ammo_queue)
+                    {
+                        if (f.Has<Gun>(pair.Value))
+                    {
+                        Gun pewpew = f.Get<Gun>(pair.Value);
+                        switch (pair.Key)
+                        {
+                            case EquipmentID.Minigun:
+                                if (pewpew.magasine == 560 && pewpew.ammo == 280) {
+                                    pewpew.magasine = 560;
+                                    pewpew.ammo = 0;
+                                } break;
+                            case EquipmentID.RebarGun:
+                                if (pewpew.magasine == 4 && pewpew.ammo == 24) {
+                                    pewpew.magasine = 4;
+                                    pewpew.ammo = 16;
+                                } break;
+                            case EquipmentID.Blaster:
+                                if (pewpew.magasine == 12 && pewpew.ammo == 24) {
+                                    pewpew.magasine = 12;
+                                    pewpew.ammo = 24;
+                                } break;
+                            case EquipmentID.SMG:
+                                if (pewpew.magasine == 200 && pewpew.ammo == 200) {
+                                    pewpew.magasine = 200;
+                                    pewpew.ammo = 0;
+                                } break;
+                            case EquipmentID.Shotgun:
+                                if (pewpew.magasine == 2 && pewpew.ammo == 8) {
+                                    pewpew.magasine = 2;
+                                    pewpew.ammo = 6;
+                                } break;
+                            case EquipmentID.Revolver:
+                                if (pewpew.magasine == 6 && pewpew.ammo == 18) {
+                                    pewpew.magasine = 6;
+                                    pewpew.ammo = 12;
+                                } break;
+                            case EquipmentID.PlasmaPistol:
+                                if (pewpew.magasine == 100 && pewpew.ammo == 100) {
+                                    pewpew.magasine = 100;
+                                    pewpew.ammo = 0;
+                                } break;
+                            case EquipmentID.Kalashnikov:
+                                if (pewpew.magasine == 36 && pewpew.ammo == 144) {
+                                    pewpew.magasine = 36;
+                                    pewpew.ammo = 72;
+                                } break;
+                            
+                            default:
+                                break;
+                        }
+
+                        f.Set(pair.Value, pewpew);
+                    }
+                    }
+                    ammo_queue.Clear();
+                }
+
                 /*
                 Il2CppSystem.Collections.Generic.List<EntityRef> all_Erefs = new Il2CppSystem.Collections.Generic.List<EntityRef>();
                 f.GetAllEntityRefs(all_Erefs);
@@ -132,6 +242,7 @@ namespace KingsRansom
             }
         }       
         
+        
         // Change pickup weapon prices
         [HarmonyPatch(typeof(PickupSpawnSystem), "SpawnPickup")]
         private class PickupSpawnSystem__SpawnPickup_Patch
@@ -168,9 +279,10 @@ namespace KingsRansom
                             if (is_on_foot == true) price = price * 2;
                             return true;
                         case EquipmentID.RiotStick:
-                            price = 75;
-                            if (is_on_foot == true) price = price * 2;
-                            return true;
+                            //price = 75;
+                            //if (is_on_foot == true) price = price * 2;
+                            return false;
+                            //  return true;
                         case EquipmentID.Chainsaw:
                             price = 200;
                             if (is_on_foot == true) price = price * 2;
@@ -198,7 +310,7 @@ namespace KingsRansom
                             if (is_on_foot == true) price = price * 2;
                             return true;
                         case EquipmentID.RebarGun:
-                            price = 125;
+                            price = 150;
                             if (is_on_foot == true) price = price * 2;
                             return true;
                         case EquipmentID.Shotgun:
@@ -210,7 +322,7 @@ namespace KingsRansom
                             if (is_on_foot == true) price = price * 2;
                             return true;
                         case EquipmentID.PlasmaPistol:
-                            price = 150;
+                            price = 125;
                             if (is_on_foot == true) price = price * 2;
                             return true;
                         case EquipmentID.Kalashnikov:
@@ -224,7 +336,7 @@ namespace KingsRansom
 
                         // -- THROWABLES --
                         case EquipmentID.Brick:
-                            price = 100;
+                            price = 75;
                             if (is_on_foot == true) price = price * 2;
                             return true;
                         case EquipmentID.Molotov:
@@ -232,7 +344,7 @@ namespace KingsRansom
                             if (is_on_foot == true) price = price * 2;
                             return true;
                         case EquipmentID.CherryBomb:
-                            price = 200;
+                            price = 50;
                             if (is_on_foot == true) price = price * 2;
                             return true;
                         case EquipmentID.Jerrycan:
@@ -245,10 +357,15 @@ namespace KingsRansom
                             return true;
                         case EquipmentID.Caltrops:
                             //price = 225;
-                            //  if (is_on_foot == true) price = price * 2;
+                            if (is_on_foot == true)
+                            {
+                                //price = price * 2;
+                                price = 150;
+                                return true;
+                            } 
                             return false;
                         case EquipmentID.Shuriken:
-                            price = 225;
+                            price = 100;
                             if (is_on_foot == true) price = price * 2;
                             return true;
                         case EquipmentID.Flashbang:
