@@ -14,6 +14,8 @@ using System.Runtime.CompilerServices;
 using Il2CppQuantum_Core;
 using System.Configuration;
 using System.Net.Http.Headers;
+using Unity.Collections;
+using Il2CppSystem.Threading;
 
 [assembly: MelonInfo(typeof(KingsRansom.Core), "KingsRansom", "1.0.0", "RosePT-10", null)]
 [assembly: MelonGame("Videocult", "Airframe")]
@@ -31,6 +33,70 @@ namespace KingsRansom
             Log.Msg("Balanced, As It Should Be.");
         }
 
+        public override void OnSceneWasLoaded(int buildIndex, string sceneName)
+        {
+            base.OnSceneWasLoaded(buildIndex, sceneName);
+            
+            // -- Ammo changes --
+            // Change magazine size
+            var smg = WeaponStats.stats[(int)EquipmentID.SMG];
+            smg.gunStats.magasineSize = 200;
+            smg.gunStats.startAmmo = 200;
+            WeaponStats.stats[(int)EquipmentID.SMG] = smg;
+
+            var minigun = WeaponStats.stats[(int)EquipmentID.Minigun];
+            minigun.gunStats.magasineSize = 560;
+            minigun.gunStats.startAmmo = 560;
+            WeaponStats.stats[(int)EquipmentID.Minigun] = minigun;
+
+            var shotgun = WeaponStats.stats[(int)EquipmentID.Shotgun];
+            shotgun.gunStats.startAmmo = 8;
+            WeaponStats.stats[(int)EquipmentID.Shotgun] = shotgun;
+
+            var blaster = WeaponStats.stats[(int)EquipmentID.Blaster];
+            blaster.gunStats.startAmmo = 36;
+            WeaponStats.stats[(int)EquipmentID.Blaster] = blaster;
+
+            var rebar = WeaponStats.stats[(int)EquipmentID.RebarGun];
+            rebar.gunStats.startAmmo = 20;
+            WeaponStats.stats[(int)EquipmentID.RebarGun] = rebar;
+            
+            var revolver = WeaponStats.stats[(int)EquipmentID.Revolver];
+            revolver.gunStats.startAmmo = 18;
+            WeaponStats.stats[(int)EquipmentID.Revolver] = revolver;
+
+            var plasma = WeaponStats.stats[(int)EquipmentID.PlasmaPistol];
+            plasma.gunStats.startAmmo = 100;
+            WeaponStats.stats[(int)EquipmentID.PlasmaPistol] = plasma;
+            
+            var kalashnikov = WeaponStats.stats[(int)EquipmentID.Kalashnikov];
+            kalashnikov.gunStats.startAmmo = 108;
+            WeaponStats.stats[(int)EquipmentID.Kalashnikov] = kalashnikov;
+            
+            
+            // Change grenade ammo
+            var cherry = WeaponStats.stats[(int)EquipmentID.CherryBomb];
+            cherry.secondaryStats.startAmount = 6;
+            WeaponStats.stats[(int)EquipmentID.CherryBomb] = cherry;
+
+            var molotov = WeaponStats.stats[(int)EquipmentID.Molotov];
+            molotov.secondaryStats.startAmount = 2;
+            WeaponStats.stats[(int)EquipmentID.Molotov] = molotov;
+
+            //var brick = WeaponStats.stats[(int)EquipmentID.Brick];
+            //brick.secondaryStats.startAmount = 8;
+            //WeaponStats.stats[(int)EquipmentID.Brick] = brick;
+
+            //var shuriken = WeaponStats.stats[(int)EquipmentID.Shuriken];
+            //shuriken.secondaryStats.startAmount = 18;
+            //WeaponStats.stats[(int)EquipmentID.Shuriken] = shuriken;
+            
+            var caltrops = WeaponStats.stats[(int)EquipmentID.Caltrops];
+            caltrops.secondaryStats.startAmount = 60;
+            WeaponStats.stats[(int)EquipmentID.Caltrops] = caltrops;
+
+        }
+
         // Remove green money checkpoint rings
         [HarmonyPatch(typeof(CheckPointSystem), "SpawnCheckpoint")]
         private class CheckPointSystem__SpawnCheckpoint_Patch
@@ -46,26 +112,29 @@ namespace KingsRansom
             }
         }
 
-        public static Dictionary<EquipmentID, EntityRef>    ammo_queue = new Dictionary<EquipmentID, EntityRef>();
+        /*
+        public static Dictionary<EntityRef, EquipmentID> ammo_queue = new Dictionary<EntityRef, EquipmentID>();
+        public static Dictionary<EntityRef, EquipmentID> ammo_queue_failed = new Dictionary<EntityRef, EquipmentID>();
         [HarmonyPatch(typeof(Frame.FrameEvents), nameof(Frame.FrameEvents.HumanoidGrabEquipment))]
         private partial class FrameEvents__HumanoidGrabEquipment_Patch
         {   
             public static void Postfix(EquipmentID eqId, EntityRef equipment)
             {
-                ammo_queue.Add(eqId, equipment);
+                ammo_queue.Add(equipment, eqId);
             }
         }   
-        
+        */
+        /*
         // Prevent cherry bomb and molotov ammo from changing
         [HarmonyPatch(typeof(RaceGameStateExtensions), nameof(RaceGameStateExtensions.OnFootSecondaryStartingAmounts))]
         private class RaceGameStateExtensions_OnFootSecondaryStartingAmounts_Patch
         {
-            public static bool Prefix()
+            public static void Postfix(ref bool __result)
             {   
-                return false;
+                __result = false;
             }
-        }
-
+        }   
+        */
         static bool is_on_foot = false;
         static Il2CppSystem.Collections.Generic.List<EntityRef> ammo_list = new Il2CppSystem.Collections.Generic.List<EntityRef>();
         [HarmonyPatch(typeof(FrameContext), "OnFrameSimulationBegin")]
@@ -76,6 +145,10 @@ namespace KingsRansom
                 Frame ff = f.Cast<Frame>();
 
                 // -- Determine if currently in an on foot arena --
+                try
+            {
+                    
+                
                 if (ff.RuntimeConfig.gameSetup.gameMode != GameMode.Sandbox)
             {
                 ArenaType arena_type = ff.GetSingleton<RaceGameState>().currArenaType;
@@ -97,100 +170,97 @@ namespace KingsRansom
                     is_on_foot = false;
                 }
             }
+            }
+                catch {}
                 
-                // -- Ammo changes --
-                // Change magazine size
-                var smg = WeaponStats.stats[(int)EquipmentID.SMG];
-                smg.gunStats.magasineSize = 200;
-                WeaponStats.stats[(int)EquipmentID.SMG] = smg;
-
-                var minigun = WeaponStats.stats[(int)EquipmentID.Minigun];
-                minigun.gunStats.magasineSize = 560;
-                WeaponStats.stats[(int)EquipmentID.Minigun] = minigun;
-
-                // Change grenade ammo
-                var cherry = WeaponStats.stats[(int)EquipmentID.CherryBomb];
-                cherry.secondaryStats.startAmount = 6;
-                WeaponStats.stats[(int)EquipmentID.CherryBomb] = cherry;
-
-                var molotov = WeaponStats.stats[(int)EquipmentID.Molotov];
-                molotov.secondaryStats.startAmount = 6;
-                WeaponStats.stats[(int)EquipmentID.Molotov] = molotov;
-
-                var brick = WeaponStats.stats[(int)EquipmentID.Brick];
-                brick.secondaryStats.startAmount = 6;
-                WeaponStats.stats[(int)EquipmentID.Brick] = brick;
-
-                var shuriken = WeaponStats.stats[(int)EquipmentID.Shuriken];
-                shuriken.secondaryStats.startAmount = 18;
-                WeaponStats.stats[(int)EquipmentID.Shuriken] = shuriken;
-                
-                var caltrops = WeaponStats.stats[(int)EquipmentID.Caltrops];
-                caltrops.secondaryStats.startAmount = 60;
-                WeaponStats.stats[(int)EquipmentID.Caltrops] = caltrops;
-                
-                
+                /*
                 // -- Change ammo of weapons as they are picked up --
                 if (ammo_queue.Count > 0)
                 {
-                    foreach (KeyValuePair<Il2CppQuantum.EquipmentID, Il2CppQuantum.EntityRef> pair in ammo_queue)
+                    foreach (KeyValuePair<Il2CppQuantum.EntityRef, Il2CppQuantum.EquipmentID> pair in ammo_queue)
                     {
-                        if (f.Has<Gun>(pair.Value))
-                    {
-                        Gun pewpew = f.Get<Gun>(pair.Value);
-                        switch (pair.Key)
+                        if (f.Has<Gun>(pair.Key))
+                    {   
+                        Gun pewpew = f.Get<Gun>(pair.Key);
+                        switch (pair.Value)
                         {
                             case EquipmentID.Minigun:
-                                if (pewpew.magasine == 560 && pewpew.ammo == 280) {
+                                if (pewpew.magasine == 280 && pewpew.ammo == 560) {
                                     pewpew.magasine = 560;
                                     pewpew.ammo = 0;
+                                } 
+                                else {ammo_queue_failed.Add(pair.Key, pair.Value);
                                 } break;
                             case EquipmentID.RebarGun:
                                 if (pewpew.magasine == 4 && pewpew.ammo == 24) {
                                     pewpew.magasine = 4;
                                     pewpew.ammo = 16;
+                                } 
+                                else {ammo_queue_failed.Add(pair.Key, pair.Value);
                                 } break;
                             case EquipmentID.Blaster:
                                 if (pewpew.magasine == 12 && pewpew.ammo == 24) {
                                     pewpew.magasine = 12;
                                     pewpew.ammo = 24;
+                                } 
+                                else {ammo_queue_failed.Add(pair.Key, pair.Value);
                                 } break;
                             case EquipmentID.SMG:
-                                if (pewpew.magasine == 200 && pewpew.ammo == 200) {
-                                    pewpew.magasine = 200;
+                                if (pewpew.magasine == 100 && pewpew.ammo == 300) {
+                                    pewpew.magasine = 200;      
                                     pewpew.ammo = 0;
+                                }
+                                else { ammo_queue_failed.Add(pair.Key, pair.Value);
                                 } break;
                             case EquipmentID.Shotgun:
                                 if (pewpew.magasine == 2 && pewpew.ammo == 8) {
-                                    pewpew.magasine = 2;
-                                    pewpew.ammo = 6;
+                                    //pewpew.magasine = 2;
+                                    //pewpew.ammo = 6;
+                                } 
+                                else {ammo_queue_failed.Add(pair.Key, pair.Value);
                                 } break;
                             case EquipmentID.Revolver:
                                 if (pewpew.magasine == 6 && pewpew.ammo == 18) {
                                     pewpew.magasine = 6;
                                     pewpew.ammo = 12;
+                                } 
+                                else {ammo_queue_failed.Add(pair.Key, pair.Value);
                                 } break;
                             case EquipmentID.PlasmaPistol:
                                 if (pewpew.magasine == 100 && pewpew.ammo == 100) {
                                     pewpew.magasine = 100;
                                     pewpew.ammo = 0;
+                                } 
+                                else {ammo_queue_failed.Add(pair.Key, pair.Value);
                                 } break;
                             case EquipmentID.Kalashnikov:
                                 if (pewpew.magasine == 36 && pewpew.ammo == 144) {
                                     pewpew.magasine = 36;
                                     pewpew.ammo = 72;
+                                } 
+                                else { ammo_queue_failed.Add(pair.Key, pair.Value);  
                                 } break;
                             
                             default:
                                 break;
                         }
 
-                        f.Set(pair.Value, pewpew);
+                        f.Set(pair.Key, pewpew);
                     }
                     }
-                    ammo_queue.Clear();
                 }
-
+                ammo_queue.Clear();
+                //Log.Msg("Ammo queue count: " + ammo_queue.Count);
+                //Log.Msg("Failed queue count: " + ammo_queue_failed.Count);
+                
+                if (ammo_queue_failed.Count > 0) {
+                //Log.Msg("detected");
+                foreach (KeyValuePair<Il2CppQuantum.EntityRef, Il2CppQuantum.EquipmentID> pair in ammo_queue_failed)
+                {
+                    ammo_queue.Add(pair.Key, pair.Value);
+                } }
+                ammo_queue_failed.Clear();
+                */
                 /*
                 Il2CppSystem.Collections.Generic.List<EntityRef> all_Erefs = new Il2CppSystem.Collections.Generic.List<EntityRef>();
                 f.GetAllEntityRefs(all_Erefs);
@@ -336,11 +406,11 @@ namespace KingsRansom
 
                         // -- THROWABLES --
                         case EquipmentID.Brick:
-                            price = 75;
+                            price = 100;
                             if (is_on_foot == true) price = price * 2;
                             return true;
                         case EquipmentID.Molotov:
-                            price = 150;
+                            price = 75;
                             if (is_on_foot == true) price = price * 2;
                             return true;
                         case EquipmentID.CherryBomb:
@@ -360,13 +430,14 @@ namespace KingsRansom
                             if (is_on_foot == true)
                             {
                                 //price = price * 2;
-                                price = 150;
+                                price = 200;
                                 return true;
                             } 
                             return false;
                         case EquipmentID.Shuriken:
-                            price = 100;
-                            if (is_on_foot == true) price = price * 2;
+                            price = 250;
+                            //if (is_on_foot == true) price = price * 2;
+                            if (is_on_foot == true) return false;
                             return true;
                         case EquipmentID.Flashbang:
                             // get fucked
