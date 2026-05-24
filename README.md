@@ -4,4 +4,4 @@ A mod which overhauls weapon balance; mainly through price changes.
   
 Code written by Astelle (she/her)
 
-Balance decisions by Thingamagic/Pit King (she/her)
+Balance decisions and logo art by Thingamagic/Pit King (she/her)
