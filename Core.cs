@@ -18,7 +18,7 @@ using System.Net.Http.Headers;
 using Unity.Collections;
 using Il2CppSystem.Threading;
 
-[assembly: MelonInfo(typeof(KingsRansom.Core), "KingsRansom", "1.0.0", "RosePT-10", null)]
+[assembly: MelonInfo(typeof(KingsRansom.Core), "KingsRansom", "1.2.0", "AstelleBT-02", null)]
 [assembly: MelonGame("Videocult", "Airframe")]
 
 namespace KingsRansom
@@ -198,7 +198,8 @@ namespace KingsRansom
                 // -- Determine if currently in an on foot arena --
                 try
             {
-                if (ff.RuntimeConfig.gameSetup.gameMode != GameMode.Sandbox)
+                //Log.Msg(ff.RuntimeConfig.Map.Id.ToString());
+                if (ff.RuntimeConfig.Map.Id.ToString() != "[045D994E46892D5A]")
             {
                 ArenaType arena_type = ff.GetSingleton<RaceGameState>().currArenaType;
                 RaceGameStateMode arena_mode = ff.GetSingleton<RaceGameState>().mode;

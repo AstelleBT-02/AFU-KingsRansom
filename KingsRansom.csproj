@@ -9,13 +9,13 @@
 		<AssemblyVersion>1.0.0.0</AssemblyVersion>
 		<FileVersion>1.0.0.0</FileVersion>
 		<NeutralLanguage>en-US</NeutralLanguage>
-		<AssemblyName>KingsRansom</AssemblyName>
+		<AssemblyName>KingsRansom-B5</AssemblyName>
 		<LangVersion>latest</LangVersion>
 		<ImplicitUsings>enable</ImplicitUsings>
 	</PropertyGroup>
 
 	<ItemGroup>
-    	<Reference Include="..\lib_b4\*.dll" Private="False" />
+    	<Reference Include="..\lib_b5\*.dll" Private="False" />
   	</ItemGroup>
 
 	<PropertyGroup>
@@ -28,6 +28,6 @@
 	</ItemGroup>
 	
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
-		<Exec Command="COPY &quot;$(TargetPath)&quot; &quot;d:\_AIRFRAME ULTRA\AFU Beta4 Modded Updated Multiplayer\UserData\GizmoMods&quot;" />
+		<Exec Command="COPY &quot;$(TargetPath)&quot; &quot;D:\_AIRFRAME ULTRA\AFU Beta5 Modded\Mods&quot;" />
 	</Target>
 </Project>
