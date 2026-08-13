@@ -2,6 +2,7 @@
 using HarmonyLib;
 using UnityEngine;
 using Il2CppQuantum_Game;
+using Il2CppList = Il2CppSystem.Collections.Generic.List<Il2CppQuantum.EntityRef>;
 using Il2CppQuantum;
 using Il2CppQuantum.Core;
 using Il2CppPhoton.Deterministic;
@@ -38,10 +39,12 @@ namespace KingsRansom
             base.OnSceneWasLoaded(buildIndex, sceneName);
             
             // -- Ammo changes --
-            // Change magazine size
+            // Change magazine size (and damage for SMG)
             var smg = WeaponStats.stats[(int)EquipmentID.SMG];
             smg.gunStats.magasineSize = 200;
             smg.gunStats.startAmmo = 200;
+            smg.gunStats.damage.machineDamage = 3;
+            smg.gunStats.damage.organicDamage = 3;
             WeaponStats.stats[(int)EquipmentID.SMG] = smg;
 
             var minigun = WeaponStats.stats[(int)EquipmentID.Minigun];
@@ -51,14 +54,18 @@ namespace KingsRansom
 
             var shotgun = WeaponStats.stats[(int)EquipmentID.Shotgun];
             shotgun.gunStats.startAmmo = 8;
+            shotgun.gunStats.pickupAmmo = 6;
+            shotgun.gunStats.fireDelay = 30;
             WeaponStats.stats[(int)EquipmentID.Shotgun] = shotgun;
 
             var blaster = WeaponStats.stats[(int)EquipmentID.Blaster];
-            blaster.gunStats.startAmmo = 36;
+            blaster.gunStats.magasineSize = 6;
+            blaster.gunStats.startAmmo = 24;
+            blaster.gunStats.pickupAmmo = 18;
             WeaponStats.stats[(int)EquipmentID.Blaster] = blaster;
 
             var rebar = WeaponStats.stats[(int)EquipmentID.RebarGun];
-            rebar.gunStats.startAmmo = 20;
+            rebar.gunStats.startAmmo = 16;
             WeaponStats.stats[(int)EquipmentID.RebarGun] = rebar;
             
             var revolver = WeaponStats.stats[(int)EquipmentID.Revolver];
@@ -95,20 +102,41 @@ namespace KingsRansom
             caltrops.secondaryStats.startAmount = 60;
             WeaponStats.stats[(int)EquipmentID.Caltrops] = caltrops;
 
+            // Change melee damage
+            var pipe = WeaponStats.stats[(int)EquipmentID.Pipe];
+            pipe.meleeStats.damage.machineDamage = 25;
+            pipe.meleeStats.damage.organicDamage = 25;
+            WeaponStats.stats[(int)EquipmentID.Pipe] = pipe;
+
+            var chainsaw = WeaponStats.stats[(int)EquipmentID.Chainsaw];
+            chainsaw.meleeStats.damage.stunFac = 0;
+            WeaponStats.stats[(int)EquipmentID.Chainsaw] = chainsaw;
+
+            var chain = WeaponStats.stats[(int)EquipmentID.Chain];
+            chain.onlyDamageWeaponStats.damageB.machineDamage = 3;
+            chain.onlyDamageWeaponStats.damageB.organicDamage = 3;
+            chain.onlyDamageWeaponStats.damage.machineDamage = 10;
+            chain.onlyDamageWeaponStats.damage.organicDamage = 10;
+            chain.meleeStats.damage.stunFac = 1;
+            WeaponStats.stats[(int)EquipmentID.Chain] = chain;
         }
 
         // Remove green money checkpoint rings
         [HarmonyPatch(typeof(CheckPointSystem), "SpawnCheckpoint")]
         private class CheckPointSystem__SpawnCheckpoint_Patch
         {
-            public static bool Prefix(CheckPointSystem __instance, CheckpointType type)
+            public static bool Prefix(CheckPointSystem __instance, ref CheckpointType type)
             {
                 // yellow rings still allowed
                 if (type == CheckpointType.Arena || type == CheckpointType.Race)
                 {
                     return false;
                 }
-                return true;
+                else
+                {
+                    type = CheckpointType.Arena;
+                    return true;
+                }
             }
         }
 
@@ -144,11 +172,32 @@ namespace KingsRansom
             {     
                 Frame ff = f.Cast<Frame>();
 
+                Il2CppList refs = new();
+                f.GetAllEntityRefs(refs);
+
+                foreach (EntityRef eref in refs)
+                {
+                    // increase beamcutter overheat speed
+                    if (f.Has<Laser>(eref)) {
+                        Laser beam = f.Get<Laser>(eref);
+                        beam.overheatSpeed = 0.018F.ToFP(); 
+                        f.Set(eref, beam);
+                    }
+
+                    // reduce chainsaw total fuel
+                    //if (f.Has<Chainsaw>(eref)) {
+                    //    Chainsaw chainsaw = f.Get<Chainsaw>(eref);
+                    //    if (chainsaw.fuel > 0.51)
+                    //    {
+                    //        chainsaw.fuel = 0.5;
+                    //    }
+                    //    f.Set(eref, chainsaw);
+                    //}
+                }
+
                 // -- Determine if currently in an on foot arena --
                 try
             {
-                    
-                
                 if (ff.RuntimeConfig.gameSetup.gameMode != GameMode.Sandbox)
             {
                 ArenaType arena_type = ff.GetSingleton<RaceGameState>().currArenaType;
@@ -311,10 +360,10 @@ namespace KingsRansom
                 */
             }
         }       
-        
-        
+
+
         // Change pickup weapon prices
-        [HarmonyPatch(typeof(PickupSpawnSystem), "SpawnPickup")]
+        [HarmonyPatch(typeof(PickupSpawnSystem), nameof(PickupSpawnSystem.SpawnPickup))]
         private class PickupSpawnSystem__SpawnPickup_Patch
         {
             public static bool Prefix(Frame f, ref EquipmentID spawnEquipment, PickupType spawnPickup, ref int price)
@@ -362,7 +411,7 @@ namespace KingsRansom
                             if (is_on_foot == true) price = price * 2;
                             return true;
                         case EquipmentID.Katana:
-                            price = 500;
+                            price = 300;
                             if (is_on_foot == true) price = price * 2;
                             return true;  
                         case EquipmentID.TrafficSign:
@@ -372,19 +421,19 @@ namespace KingsRansom
 
                         // -- GUNS --
                         case EquipmentID.Blaster:
-                            price = 100;
+                            price = 75;
                             if (is_on_foot == true) price = price * 2;
                             return true;
                         case EquipmentID.SMG:
-                            price = 100;
+                            price = 75;
                             if (is_on_foot == true) price = price * 2;
                             return true;
                         case EquipmentID.RebarGun:
-                            price = 150;
+                            price = 125;
                             if (is_on_foot == true) price = price * 2;
                             return true;
                         case EquipmentID.Shotgun:
-                            price = 225;
+                            price = 200;
                             if (is_on_foot == true) price = price * 2;
                             return true;
                         case EquipmentID.Revolver:
@@ -396,17 +445,17 @@ namespace KingsRansom
                             if (is_on_foot == true) price = price * 2;
                             return true;
                         case EquipmentID.Kalashnikov:
-                            price = 300;
+                            price = 250;
                             if (is_on_foot == true) price = price * 2;
                             return true;
                         case EquipmentID.Minigun:
-                            price = 500;
+                            price = 300;
                             if (is_on_foot == true) price = price * 2;
                             return true;
 
                         // -- THROWABLES --
                         case EquipmentID.Brick:
-                            price = 100;
+                            price = 125 ;
                             if (is_on_foot == true) price = price * 2;
                             return true;
                         case EquipmentID.Molotov:
@@ -422,7 +471,7 @@ namespace KingsRansom
                             if (is_on_foot == true) price = price * 2;
                             return true;
                         case EquipmentID.FragGrenade:
-                            price = 200;
+                            price = 175;
                             if (is_on_foot == true) price = price * 2;
                             return true;
                         case EquipmentID.Caltrops:
@@ -435,7 +484,7 @@ namespace KingsRansom
                             } 
                             return false;
                         case EquipmentID.Shuriken:
-                            price = 250;
+                            price = 225;
                             //if (is_on_foot == true) price = price * 2;
                             if (is_on_foot == true) return false;
                             return true;
@@ -494,5 +543,53 @@ namespace KingsRansom
                 return false;
             }
         }
+
+        // Remove estate door (code entirely taken from Knight-Ragu's TimerMod)
+        [HarmonyPatch(typeof(RaceGameModeSystem), nameof(RaceGameModeSystem.ChangeMode))]
+        class RaceGameModeSystem__ChangeMode_Patch
+        {
+            public unsafe static void Postfix(Frame f, ref MapConfig mapConfig, RaceGameState* gameState)
+            {
+                Il2CppList refs = new();
+
+                f.GetAllEntityRefs(refs);
+                foreach (var entity in refs)
+                    if (f.Has<PathBlocker>(entity))
+                        f.Destroy(entity);
+            }
+        }   
+
+        [HarmonyPatch(typeof(ShopSystem), nameof(ShopSystem.GetRarity))]
+        class ShopSystem__GetRarity_Patch
+        {
+            public static void Postfix(ref ShopItem shopItem, ShopTags tags, FP __result)
+            {
+                //Log.Msg($"{shopItem.eqID.ToString()} returns a rarity of: {__result}");
+            }
+        }   
+
+        /*
+        [HarmonyPatch(typeof(FrameBase), nameof(FrameBase.Create), [typeof(EntityPrototype)])]
+        private class FrameBase__Create_Patch
+        {
+            public static void Postfix(EntityPrototype prototype, EntityRef __result)
+            {   
+                if (prototype.name == "PickupPrefabEntityPrototype")
+                {
+                    PickupPrototype pick;
+                    foreach (ComponentPrototype proto in prototype.Container.Components)
+                    {
+                        //if (proto.ComponentType.Equals(typeof(PickupPrototype))) {
+
+                        pick = proto.TryCast<PickupPrototype>();
+                        if (pick != null) {
+                        //Log.Msg(Il2CppSystem.Enum.GetName(typeof(EquipmentID), pick.equipmentID));
+                        Log.Msg($"{__result} has a price of: {pick.price}");
+                    }}
+                }
+            }
+        }
+        */
+
     }
 }
