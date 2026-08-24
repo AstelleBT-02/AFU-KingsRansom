@@ -17,6 +17,7 @@ using System.Configuration;
 using System.Net.Http.Headers;
 using Unity.Collections;
 using Il2CppSystem.Threading;
+using Il2CppQuantum_HoverBike;
 
 [assembly: MelonInfo(typeof(KingsRansom.Core), "KingsRansom", "1.2.0", "AstelleBT-02", null)]
 [assembly: MelonGame("Videocult", "Airframe")]
@@ -560,12 +561,12 @@ namespace KingsRansom
             }
         }   
 
-        [HarmonyPatch(typeof(ShopSystem), nameof(ShopSystem.GetRarity))]
+        [HarmonyPatch(typeof(HoverBikeSystem.Malfunctions), nameof(HoverBikeSystem.Malfunctions.UpdateMalfunctionStatus))]
         class ShopSystem__GetRarity_Patch
         {
-            public static void Postfix(ref ShopItem shopItem, ShopTags tags, FP __result)
+            public static bool Prefix()
             {
-                //Log.Msg($"{shopItem.eqID.ToString()} returns a rarity of: {__result}");
+                return false;
             }
         }   
 
