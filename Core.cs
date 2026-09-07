@@ -17,6 +17,9 @@ using System.Configuration;
 using System.Net.Http.Headers;
 using Unity.Collections;
 using Il2CppSystem.Threading;
+using Il2CppQuantum_HoverBike;
+using Il2CppView_Entities;
+using Il2CppQuantum_HoverBikeShared;
 
 [assembly: MelonInfo(typeof(KingsRansom.Core), "KingsRansom", "1.0.0", "RosePT-10", null)]
 [assembly: MelonGame("Videocult", "Airframe")]
@@ -84,23 +87,32 @@ namespace KingsRansom
             // Change grenade ammo
             var cherry = WeaponStats.stats[(int)EquipmentID.CherryBomb];
             cherry.secondaryStats.startAmount = 6;
+            //cherry.secondaryStats.onFootStartAmount = 20;
+            //cherry.secondaryStats.throwAnimationSpeed = 0.5;
             WeaponStats.stats[(int)EquipmentID.CherryBomb] = cherry;
 
             var molotov = WeaponStats.stats[(int)EquipmentID.Molotov];
             molotov.secondaryStats.startAmount = 2;
+            //molotov.secondaryStats.onFootStartAmount = 20;
+            //molotov.secondaryStats.throwAnimationSpeed = 0.5;
             WeaponStats.stats[(int)EquipmentID.Molotov] = molotov;
 
             //var brick = WeaponStats.stats[(int)EquipmentID.Brick];
-            //brick.secondaryStats.startAmount = 8;
+            //brick.secondaryStats.throwAnimationSpeed = 0.5;
             //WeaponStats.stats[(int)EquipmentID.Brick] = brick;
 
             //var shuriken = WeaponStats.stats[(int)EquipmentID.Shuriken];
-            //shuriken.secondaryStats.startAmount = 18;
+            //shuriken.secondaryStats.throwAnimationSpeed = 1;
             //WeaponStats.stats[(int)EquipmentID.Shuriken] = shuriken;
             
             var caltrops = WeaponStats.stats[(int)EquipmentID.Caltrops];
             caltrops.secondaryStats.startAmount = 60;
+            //caltrops.secondaryStats.throwAnimationSpeed = 0.5;
             WeaponStats.stats[(int)EquipmentID.Caltrops] = caltrops;
+
+            //var grenade = WeaponStats.stats[(int)EquipmentID.FragGrenade];
+            //grenade.secondaryStats.throwAnimationSpeed = 0.5;
+            //WeaponStats.stats[(int)EquipmentID.FragGrenade] = grenade;
 
             // Change melee damage
             var pipe = WeaponStats.stats[(int)EquipmentID.Pipe];
@@ -113,8 +125,8 @@ namespace KingsRansom
             WeaponStats.stats[(int)EquipmentID.Chainsaw] = chainsaw;
 
             var chain = WeaponStats.stats[(int)EquipmentID.Chain];
-            chain.onlyDamageWeaponStats.damageB.machineDamage = 3;
-            chain.onlyDamageWeaponStats.damageB.organicDamage = 3;
+            chain.onlyDamageWeaponStats.damageB.machineDamage = 6;
+            chain.onlyDamageWeaponStats.damageB.organicDamage = 6;
             chain.onlyDamageWeaponStats.damage.machineDamage = 10;
             chain.onlyDamageWeaponStats.damage.organicDamage = 10;
             chain.meleeStats.damage.stunFac = 1;
@@ -163,12 +175,30 @@ namespace KingsRansom
             }
         }   
         */
+        
+        // fetch currently exisiting bikes when a bike respawns
+        /*
+        public static Dictionary<EntityRef, HoverBike_View> bike_model_dictionary = new Dictionary<EntityRef, HoverBike_View>();
+        public static List<EntityRef> new_bikes = new List<EntityRef>();
+        public static int wait_for_bike_model_fetch = 0;
+        [HarmonyPatch(typeof(BikeRespawnSystem), nameof(BikeRespawnSystem.SpawnBike))]
+        private class BikeRespawnSystem__SpawnBike_Patch
+        {
+            public static void Postfix(EntityRef __result)
+            {    
+                new_bikes.Add(__result);
+                wait_for_bike_model_fetch = 20;
+            }
+        }
+        */
+        
         static bool is_on_foot = false;
+        public static Dictionary<EntityRef, int> last_boosts = new Dictionary<EntityRef, int>();
         static Il2CppSystem.Collections.Generic.List<EntityRef> ammo_list = new Il2CppSystem.Collections.Generic.List<EntityRef>();
         [HarmonyPatch(typeof(FrameContext), "OnFrameSimulationBegin")]
         private class Simulate
         {
-            public static void Postfix(FrameBase f)
+            public static unsafe void Postfix(FrameBase f)
             {     
                 Frame ff = f.Cast<Frame>();
 
@@ -184,6 +214,20 @@ namespace KingsRansom
                         f.Set(eref, beam);
                     }
 
+                    // grenade testing
+                    if (f.Has<Grenade>(eref)) {
+                        Grenade gre = f.Get<Grenade>(eref);
+                        if (gre.equipmentID == EquipmentID.CherryBomb && gre.bouncePos == FPVector3.Zero && gre.fuse == 1)
+                        {
+                            gre.fuse = 40;
+                        }
+                        if (gre.equipmentID == EquipmentID.FragGrenade && gre.bouncePos == FPVector3.Zero && gre.fuse == 1)
+                        {
+                            gre.fuse = 50;
+                        }
+                        f.Set(eref, gre);
+                    }
+
                     // reduce chainsaw total fuel
                     //if (f.Has<Chainsaw>(eref)) {
                     //    Chainsaw chainsaw = f.Get<Chainsaw>(eref);
@@ -193,8 +237,57 @@ namespace KingsRansom
                     //    }
                     //    f.Set(eref, chainsaw);
                     //}
-                }
+                    //Log.Msg(wait_for_bike_model_fetch);
+                    /*
+                    if (f.Has<HoverBike>(eref)) {
+                        if (wait_for_bike_model_fetch > 1)
+                        {
+                            wait_for_bike_model_fetch--;
+                        }
+                        else if (wait_for_bike_model_fetch == 1)
+                        {
+                            Log.Msg(eref);
+                            foreach (var c in GameObject.FindObjectsOfType<HoverBike_View>()) {
+                                if (c.name == eref.ToString())
+                                {   
+                                    HoverBike_View bikemodel = c.GetComponent<HoverBike_View>();
+                                    bike_model_dictionary.Clear();
+                                    bike_model_dictionary.Add(eref, bikemodel);
+                                    continue;
+                                }
+                            }
+                            wait_for_bike_model_fetch--;
+                        }
 
+                        
+                        if (bike_model_dictionary.ContainsKey(eref)) {
+                            for (int i = 0; i < bike_model_dictionary.Count; i++)
+                            {   
+                                HoverBike* bike = f.GetPointer<HoverBike>(eref);
+                                HoverBike_View model = bike_model_dictionary[eref];
+
+                                bike->malfunctions = 0;
+                            
+                                if (model && model.model == HoverbikeModel.Light && !new_bikes.Contains(eref))
+                                {
+                                    if (last_boosts.ContainsKey(eref) && last_boosts[eref] < bike->boosts) {
+                                        bike->boosts++;
+                                        last_boosts[eref] = bike->boosts;
+                                    }
+                                    else if (last_boosts.ContainsKey(eref)) {
+                                        last_boosts[eref] = bike->boosts;
+                                    }
+                                    else {
+                                        last_boosts.Add(eref, bike->boosts);
+                                    }
+                                }
+                                else {new_bikes.Remove(eref); last_boosts.Clear();}
+                            }
+                        }
+                    }
+                    */
+                }
+                
                 // -- Determine if currently in an on foot arena --
                 try
             {
@@ -361,12 +454,13 @@ namespace KingsRansom
             }
         }       
 
+        
 
         // Change pickup weapon prices
         [HarmonyPatch(typeof(PickupSpawnSystem), nameof(PickupSpawnSystem.SpawnPickup))]
         private class PickupSpawnSystem__SpawnPickup_Patch
         {
-            public static bool Prefix(Frame f, ref EquipmentID spawnEquipment, PickupType spawnPickup, ref int price)
+            public static bool Prefix(Frame f, ref EquipmentID spawnEquipment, PickupType spawnPickup, ref int price)   
             {   
                 //      --- EQUIPMENT PRICES ---
                 if (spawnPickup == PickupType.Equipment)
@@ -403,7 +497,7 @@ namespace KingsRansom
                             return false;
                             //  return true;
                         case EquipmentID.Chainsaw:
-                            price = 200;
+                            price = 175;
                             if (is_on_foot == true) price = price * 2;
                             return true;
                         case EquipmentID.Laser_Melee:
@@ -471,7 +565,7 @@ namespace KingsRansom
                             if (is_on_foot == true) price = price * 2;
                             return true;
                         case EquipmentID.FragGrenade:
-                            price = 175;
+                            price = 200;
                             if (is_on_foot == true) price = price * 2;
                             return true;
                         case EquipmentID.Caltrops:
@@ -534,6 +628,18 @@ namespace KingsRansom
             }
         }
 
+        /*
+        [HarmonyPatch(typeof(PickupPickSystem), nameof(PickupPickSystem.PlayerGetPickup))]
+        private class PickupPickSystem__PlayerGetPickup_Patch
+        {
+            public static unsafe void Postfix()
+            {
+                //ref Frame f, ref EntityRef playerEntity, ref Player player, ref EntityRef pickupEntity, ref Pickup* pickup
+                //Log.Msg(pickup->equipmentID);
+            }
+        }
+        */
+
         // Temp removal of the entire spawn shop so that the mod is at least functional
         [HarmonyPatch(typeof(ShopSystem), "InitiateSpawnShop")]
         private class ShopSystem__InitiateSpawnShop_Patch
@@ -559,15 +665,28 @@ namespace KingsRansom
             }
         }   
 
-        [HarmonyPatch(typeof(ShopSystem), nameof(ShopSystem.GetRarity))]
-        class ShopSystem__GetRarity_Patch
+        /*
+        [HarmonyPatch(typeof(HoverBikeSystem.Malfunctions), nameof(HoverBikeSystem.Malfunctions.UpdateMalfunctionStatus))]
+        class Malfunctions__UpdateMalfunctionStatus_Patch
         {
-            public static void Postfix(ref ShopItem shopItem, ShopTags tags, FP __result)
+            public static bool Prefix()
             {
-                //Log.Msg($"{shopItem.eqID.ToString()} returns a rarity of: {__result}");
+                return false;
             }
-        }   
-
+        }  
+        */
+        /*
+        [HarmonyPatch(typeof(HoverbikeStats), nameof(HoverbikeStats.GetStats))]
+        class HoverbikeStats__GetStats_Patch
+        {
+            public static void Prefix(ref HoverbikeModel model)
+            {
+                //riderBodyType = BodyType.Heavy;
+                //ref BodyType riderBodyType    
+                model = HoverbikeModel.Heavy;   
+            }
+        }  
+        */
         /*
         [HarmonyPatch(typeof(FrameBase), nameof(FrameBase.Create), [typeof(EntityPrototype)])]
         private class FrameBase__Create_Patch
