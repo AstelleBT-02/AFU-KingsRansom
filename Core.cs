@@ -175,9 +175,23 @@ namespace KingsRansom
             }
         }   
         */
+       
+       /*
+       [HarmonyPatch(typeof(ShopSystem), nameof(ShopSystem.GetRandomItemForPickupSpawn))]
+        private class ShopSystem__GetRandomItemForPickupSpawn_Patch
+        {
+            public static void Postfix()
+            {    
+                //price = price;
+                //equipmentID = equipmentID;
+                //pickupType = pickupType;
+                //ref int price, ref EquipmentID equipmentID, ref PickupType pickupType
+            }
+        }
+        */
         
+       
         // fetch currently exisiting bikes when a bike respawns
-        /*
         public static Dictionary<EntityRef, HoverBike_View> bike_model_dictionary = new Dictionary<EntityRef, HoverBike_View>();
         public static List<EntityRef> new_bikes = new List<EntityRef>();
         public static int wait_for_bike_model_fetch = 0;
@@ -190,7 +204,7 @@ namespace KingsRansom
                 wait_for_bike_model_fetch = 20;
             }
         }
-        */
+        
         
         static bool is_on_foot = false;
         public static Dictionary<EntityRef, int> last_boosts = new Dictionary<EntityRef, int>();
@@ -238,7 +252,7 @@ namespace KingsRansom
                     //    f.Set(eref, chainsaw);
                     //}
                     //Log.Msg(wait_for_bike_model_fetch);
-                    /*
+                    
                     if (f.Has<HoverBike>(eref)) {
                         if (wait_for_bike_model_fetch > 1)
                         {
@@ -267,9 +281,12 @@ namespace KingsRansom
                                 HoverBike_View model = bike_model_dictionary[eref];
 
                                 bike->malfunctions = 0;
+
+                                //Log.Msg($"boosts: {bike->boosts}");
                             
                                 if (model && model.model == HoverbikeModel.Light && !new_bikes.Contains(eref))
                                 {
+                                    /*
                                     if (last_boosts.ContainsKey(eref) && last_boosts[eref] < bike->boosts) {
                                         bike->boosts++;
                                         last_boosts[eref] = bike->boosts;
@@ -280,37 +297,31 @@ namespace KingsRansom
                                     else {
                                         last_boosts.Add(eref, bike->boosts);
                                     }
+                                    */
                                 }
-                                else {new_bikes.Remove(eref); last_boosts.Clear();}
+                                //else {new_bikes.Remove(eref); last_boosts.Clear();}
                             }
                         }
                     }
-                    */
+                    
                 }
                 
                 // -- Determine if currently in an on foot arena --
                 try
             {
-                if (ff.RuntimeConfig.gameSetup.gameMode != GameMode.Sandbox)
+                if (ff.RuntimeConfig.Map.Id.ToString() != "[045D994E46892D5A]")
             {
                 ArenaType arena_type = ff.GetSingleton<RaceGameState>().currArenaType;
                 RaceGameStateMode arena_mode = ff.GetSingleton<RaceGameState>().mode;
                 //Log.Msg("current mod is: " + arena_mode);
                 if (arena_mode == RaceGameStateMode.Arena)
                 {
-                    if (arena_type == ArenaType.OnFoot)
-                    {
+                    if (arena_type == ArenaType.OnFoot) {
                         is_on_foot = true;
                     }
-                    else
-                    {
-                        is_on_foot = false;
-                    }
+                    else { is_on_foot = false; }
                 }
-                    else
-                {
-                    is_on_foot = false;
-                }
+                else { is_on_foot = false; }
             }
             }
                 catch {}
@@ -628,17 +639,6 @@ namespace KingsRansom
             }
         }
 
-        /*
-        [HarmonyPatch(typeof(PickupPickSystem), nameof(PickupPickSystem.PlayerGetPickup))]
-        private class PickupPickSystem__PlayerGetPickup_Patch
-        {
-            public static unsafe void Postfix()
-            {
-                //ref Frame f, ref EntityRef playerEntity, ref Player player, ref EntityRef pickupEntity, ref Pickup* pickup
-                //Log.Msg(pickup->equipmentID);
-            }
-        }
-        */
 
         // Temp removal of the entire spawn shop so that the mod is at least functional
         [HarmonyPatch(typeof(ShopSystem), "InitiateSpawnShop")]
