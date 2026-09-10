@@ -127,8 +127,8 @@ namespace KingsRansom
             var chain = WeaponStats.stats[(int)EquipmentID.Chain];
             chain.onlyDamageWeaponStats.damageB.machineDamage = 6;
             chain.onlyDamageWeaponStats.damageB.organicDamage = 6;
-            chain.onlyDamageWeaponStats.damage.machineDamage = 10;
-            chain.onlyDamageWeaponStats.damage.organicDamage = 10;
+            chain.onlyDamageWeaponStats.damage.machineDamage = 11;
+            chain.onlyDamageWeaponStats.damage.organicDamage = 11;
             chain.meleeStats.damage.stunFac = 1;
             WeaponStats.stats[(int)EquipmentID.Chain] = chain;
         }
